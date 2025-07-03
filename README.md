@@ -95,8 +95,8 @@ OPENAI_API_KEY='your_openai_api_key_here'
 ---
 
 ## 🖼️ Screenshots
-| Login |
-|-------|--------|
+| Login Page | 
+|---------|-----------|
 | ![Login page](screenshots/1.png) 
 
 | AI Input | AI Output |
