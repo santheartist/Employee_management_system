@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>EMS - Employee Statistics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    html[data-bs-theme='light'] body {
+      background: radial-gradient(circle at center, #e0f2f1, #ffffff);
+    }
+
+    html[data-bs-theme='dark'] body {
+      background: radial-gradient(circle at center, #004d40, #212121);
+    }
+
+    /* Doodle overlay styles - Copied from login.html */
+    .doodle-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0; /* Ensure it's behind the content */
+    }
+
+    .doodle-overlay img {
+      position: absolute;
+      width: 48px;
+      opacity: 0.2; /* Much darker for high visibility */
+      transform: rotate(var(--rotate, 0deg));
+    }
+
+    /* 24 random placements - Copied from login.html */
+    .d1  { top: 5%; left: 10%; --rotate: 10deg; }
+    .d2  { top: 12%; left: 30%; --rotate: -20deg; }
+    .d3  { top: 18%; left: 65%; --rotate: 35deg; }
+    .d4  { top: 22%; left: 85%; --rotate: -10deg; }
+    .d5  { top: 30%; left: 5%; --rotate: 45deg; }
+    .d6  { top: 35%; left: 40%; --rotate: -45deg; }
+    .d7  { top: 38%; left: 75%; --rotate: 25deg; }
+    .d8  { top: 44%; left: 55%; --rotate: 15deg; }
+    .d9  { top: 52%; left: 15%; --rotate: -30deg; }
+    .d10 { top: 55%; left: 90%; --rotate: 50deg; }
+    .d11 { top: 58%; left: 35%; --rotate: -60deg; }
+    .d12 { top: 60%; left: 60%; --rotate: 5deg; }
+    .d13 { top: 65%; left: 25%; --rotate: -15deg; }
+    .d14 { top: 68%; left: 80%; --rotate: 70deg; }
+    .d15 { top: 70%; left: 10%; --rotate: 35deg; }
+    .d16 { top: 73%; left: 50%; --rotate: -35deg; }
+    .d17 { top: 76%; left: 68%; --rotate: 20deg; }
+    .d18 { top: 78%; left: 33%; --rotate: -25deg; }
+    .d19 { top: 82%; left: 5%; --rotate: 30deg; }
+    .d20 { top: 84%; left: 88%; --rotate: -40deg; }
+    .d21 { top: 87%; left: 42%; --rotate: 15deg; }
+    .d22 { top: 89%; left: 65%; --rotate: -10deg; }
+    .d23 { top: 92%; left: 20%; --rotate: 5deg; }
+    .d24 { top: 95%; left: 75%; --rotate: -50deg; }
+
+    #themeToggle {
+      border: none;
+      background: transparent;
+      padding: 0;
+      font-size: 1.5rem;
+      box-shadow: none; /* Added to remove outline on focus/active */
+      outline: none; /* Added to remove outline on focus/active */
+    }
+
+    #themeToggle:focus,
+    #themeToggle:active {
+      box-shadow: none !important;
+      outline: none !important;
+    }
+
+    #themeToggle:hover {
+      opacity: 0.7;
+    }
+
+    .main-content {
+      background: var(--bs-body-bg); /* Use Bootstrap's body background for card-like effect */
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+      z-index: 1; /* Ensure content is above doodles */
+      position: relative; /* Needed for z-index */
+      max-width: 900px; /* Limit content width for better presentation */
+      margin: 4rem auto; /* Center content and add space from top */
+    }
+
+    .chart-container {
+        position: relative;
+        width: 70%; /* Make chart proportional to container */
+        margin: 0 auto 2rem auto; /* Center the chart */
+        perspective: 1000px; /* For 3D effect */
+    }
+
+    #statsChart {
+        transform: rotateX(45deg); /* Tilt for 3D effect */
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* Add shadow for depth */
+        border-radius: 10px; /* Slightly rounded corners for the canvas */
+    }
+
+    .stats-table-wrapper {
+        max-height: 250px; /* Limit height for scrollability */
+        overflow-y: auto;
+        border: 1px solid var(--bs-border-color); /* Add a subtle border */
+        border-radius: 8px;
+    }
+
+    .stats-table thead th {
+        position: sticky;
+        top: 0;
+        background-color: var(--bs-light-bg-subtle, #f8f9fa);
+        z-index: 2; /* Ensure sticky header is above table content */
+    }
+
+    html[data-bs-theme='dark'] .stats-table thead th {
+        background-color: #2a2a2a;
+        color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="doodle-overlay">
+    {% for i in range(1, 25) %}
+      <img src="{{ url_for('static', filename='document-doodle.png') }}" class="d{{ i }}" />
+    {% endfor %}
+  </div>
+
+  <div class="container main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="fw-bold mb-0">📊 Employee Statistics</h2>
+      <button id="themeToggle" class="btn btn-sm">🌙</button>
+    </div>
+
+    <h5 class="mb-3">📌 Employees by Position</h5>
+    <div class="chart-container">
+      <canvas id="statsChart"></canvas>
+    </div>
+
+    <hr class="my-5" />
+
+    <h5 class="mb-3">Employee Position Counts</h5>
+    <div class="stats-table-wrapper">
+        <table class="table table-hover table-striped align-middle mb-0 stats-table">
+            <thead>
+                <tr>
+                    <th>Position</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody id="employeeStatsTableBody">
+                </tbody>
+        </table>
+    </div>
+
+
+    <a href="/dashboard" class="btn btn-secondary mt-4">← Back to Dashboard</a>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const toggle = document.getElementById("themeToggle");
+      const html = document.documentElement;
+
+      // Set initial theme based on preference or saved theme
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const savedTheme = localStorage.getItem("theme");
+      html.setAttribute("data-bs-theme", savedTheme || (prefersDark ? "dark" : "light"));
+      toggle.textContent = html.getAttribute("data-bs-theme") === "dark" ? "🌞" : "🌙";
+
+      toggle.addEventListener("click", () => {
+        const currentTheme = html.getAttribute("data-bs-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        html.setAttribute("data-bs-theme", newTheme);
+        localStorage.setItem("theme", newTheme); // Save theme preference
+        toggle.textContent = newTheme === "dark" ? "🌞" : "🌙";
+      });
+
+      async function loadStaticChartAndTable() {
+        const res = await fetch("/stats/data");
+        const data = await res.json();
+        const labels = data.map(item => item.position);
+        const values = data.map(item => item.count);
+
+        // Render Pie Chart
+        new Chart(document.getElementById("statsChart"), {
+          type: "pie",
+          data: {
+            labels,
+            datasets: [{
+              data: values,
+              backgroundColor: ["#007bff", "#ffc107", "#28a745", "#dc3545", "#6f42c1", "#fd7e14", "#20c997", "#6610f2", "#e83e8c"] // More colors for more positions
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false, // Allow custom sizing
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                    font: {
+                        size: 14 // Make legend text slightly larger
+                    }
+                }
+              },
+              title: {
+                display: false, // Title moved to H5 tag
+                text: "Employees by Position"
+              }
+            }
+          }
+        });
+
+        // Render Table
+        const tbody = document.getElementById('employeeStatsTableBody');
+        tbody.innerHTML = ''; // Clear existing rows
+        data.forEach(item => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.position}</td>
+                    <td>${item.count}</td>
+                </tr>
+            `;
+        });
+      }
+
+      // No AI form submission event listener as it's removed
+
+      loadStaticChartAndTable();
+    });
+  </script>
+</body>
+</html>

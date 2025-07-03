@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Chart Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    html[data-bs-theme='light'] body {
+      background: radial-gradient(circle at center, #e0f2f1, #ffffff);
+    }
+
+    html[data-bs-theme='dark'] body {
+      background: radial-gradient(circle at center, #004d40, #212121);
+    }
+
+    /* Doodle overlay styles */
+    .doodle-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0; /* Ensure it's behind the content */
+    }
+
+    .doodle-overlay img {
+      position: absolute;
+      width: 48px;
+      opacity: 0.2;
+      transform: rotate(var(--rotate, 0deg));
+    }
+
+    /* 24 random placements */
+    .d1  { top: 5%; left: 10%; --rotate: 10deg; }
+    .d2  { top: 12%; left: 30%; --rotate: -20deg; }
+    .d3  { top: 18%; left: 65%; --rotate: 35deg; }
+    .d4  { top: 22%; left: 85%; --rotate: -10deg; }
+    .d5  { top: 30%; left: 5%; --rotate: 45deg; }
+    .d6  { top: 35%; left: 40%; --rotate: -45deg; }
+    .d7  { top: 38%; left: 75%; --rotate: 25deg; }
+    .d8  { top: 44%; left: 55%; --rotate: 15deg; }
+    .d9  { top: 52%; left: 15%; --rotate: -30deg; }
+    .d10 { top: 55%; left: 90%; --rotate: 50deg; }
+    .d11 { top: 58%; left: 35%; --rotate: -60deg; }
+    .d12 { top: 60%; left: 60%; --rotate: 5deg; }
+    .d13 { top: 65%; left: 25%; --rotate: -15deg; }
+    .d14 { top: 68%; left: 80%; --rotate: 70deg; }
+    .d15 { top: 70%; left: 10%; --rotate: 35deg; }
+    .d16 { top: 73%; left: 50%; --rotate: -35deg; }
+    .d17 { top: 76%; left: 68%; --rotate: 20deg; }
+    .d18 { top: 78%; left: 33%; --rotate: -25deg; }
+    .d19 { top: 82%; left: 5%; --rotate: 30deg; }
+    .d20 { top: 84%; left: 88%; --rotate: -40deg; }
+    .d21 { top: 87%; left: 42%; --rotate: 15deg; }
+    .d22 { top: 89%; left: 65%; --rotate: -10deg; }
+    .d23 { top: 92%; left: 20%; --rotate: 5deg; }
+    .d24 { top: 95%; left: 75%; --rotate: -50deg; }
+
+    #themeToggle {
+      border: none;
+      background: transparent;
+      padding: 0;
+      font-size: 1.25rem;
+      box-shadow: none;
+      outline: none;
+    }
+
+    #themeToggle:focus,
+    #themeToggle:active {
+      box-shadow: none !important;
+      outline: none !important;
+    }
+
+    #themeToggle:hover {
+      opacity: 0.7;
+    }
+
+    .main-content {
+      background: var(--bs-body-bg);
+      padding: 2.5rem;
+      border-radius: 16px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+      z-index: 1;
+      position: relative;
+      max-width: 900px;
+      margin: 4rem auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .header-row {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .header-row h2 {
+        font-size: 1.75rem;
+    }
+
+    .form-section {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 3rem;
+    }
+
+    .form-group {
+        width: 100%;
+        max-width: 600px;
+        margin-bottom: 1rem;
+    }
+
+    .form-control {
+        font-size: 0.95rem;
+        padding: 0.6rem 0.75rem;
+    }
+
+    .button-group {
+        width: 100%;
+        max-width: 600px;
+        display: flex;
+        justify-content: flex-start;
+        gap: 1rem;
+    }
+    
+    .button-group .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    .generated-chart-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+        min-height: 200px; /* Added to maintain layout space */
+        align-items: center; /* Vertically center content */
+    }
+
+    #aiGraph {
+        max-width: 100%;
+        height: auto;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    #loadingText {
+        font-size: 1.1rem;
+        color: var(--bs-secondary-color);
+    }
+  </style>
+</head>
+<body>
+  <div class="doodle-overlay">
+    {% for i in range(1, 25) %}
+      <img src="{{ url_for('static', filename='document-doodle.png') }}" class="d{{ i }}" />
+    {% endfor %}
+  </div>
+
+  <div class="container main-content">
+    <div class="header-row">
+      <h2 class="fw-bold mb-0">🧠 AI Chart Generator</h2>
+      <button id="themeToggle" class="btn btn-sm">🌙</button>
+    </div>
+
+    <div class="form-section">
+        <form id="aiForm" class="w-100 d-flex flex-column align-items-center">
+            <div class="form-group">
+                <input class="form-control" id="prompt" placeholder="e.g. Plot average age by department" required />
+            </div>
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary" id="generateButton">Generate</button>
+                <a href="/dashboard" class="btn btn-secondary">← Back to Dashboard</a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="generated-chart-container">
+        <img id="aiGraph" class="img-fluid d-none" alt="Generated AI Chart" />
+        <p id="loadingText" class="d-none">Generating chart, please wait...</p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const html = document.documentElement;
+      const toggle = document.getElementById("themeToggle");
+      const aiForm = document.getElementById("aiForm");
+      const promptInput = document.getElementById("prompt");
+      const aiGraph = document.getElementById("aiGraph");
+      const loadingText = document.getElementById("loadingText");
+      const generateButton = document.getElementById("generateButton");
+
+      // Set initial theme based on preference or saved theme
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const savedTheme = localStorage.getItem("theme");
+      html.setAttribute("data-bs-theme", savedTheme || (prefersDark ? "dark" : "light"));
+      toggle.textContent = html.getAttribute("data-bs-theme") === "dark" ? "🌞" : "🌙";
+
+      toggle.addEventListener("click", () => {
+        const currentTheme = html.getAttribute("data-bs-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        html.setAttribute("data-bs-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+        toggle.textContent = newTheme === "dark" ? "🌞" : "🌙";
+      });
+
+      aiForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        // Show loading indicator and hide previous image
+        aiGraph.classList.add("d-none");
+        aiGraph.src = ""; // Clear previous image source immediately
+        loadingText.classList.remove("d-none");
+        generateButton.disabled = true;
+        generateButton.textContent = 'Generating...';
+
+
+        const prompt = promptInput.value;
+
+        try {
+          const res = await fetch("/insight", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt })
+          });
+
+          if (!res.ok) {
+              const errorData = await res.json();
+              throw new Error(errorData.error || `Server responded with status ${res.status}`);
+          }
+
+          const data = await res.json();
+
+          if (data.image) {
+            aiGraph.src = `data:image/png;base64,${data.image}`;
+            aiGraph.classList.remove("d-none");
+          } else {
+            alert("❌ Chart generation succeeded, but no image data was returned. Please try a different prompt.");
+          }
+        } catch (error) {
+          console.error("Error generating chart:", error);
+          alert(`❌ An error occurred: ${error.message}. Please check your prompt or try again.`);
+        } finally {
+          // Hide loading indicator and re-enable button
+          loadingText.classList.add("d-none");
+          generateButton.disabled = false;
+          generateButton.textContent = 'Generate';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
