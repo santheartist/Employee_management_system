@@ -6,9 +6,11 @@ from services.db import (
 )
 from services.mail import send_email
 from services.insights import generate_ai_graph # Make sure this import is correct
+import os # Import the os module to access environment variables
 
 app = Flask(__name__)
-app.secret_key = 'super-secret-key'  # Replace with strong key in production
+# It's highly recommended to use an environment variable for app.secret_key in production
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'super-secret-key') # Using os.getenv for secret key
 initialize_db()
 
 @app.route('/')
@@ -95,7 +97,6 @@ def ai_insight():
         if img_base64:
             return jsonify({"image": img_base64})
         else:
-            # This error is now more specific from insights.py
             print(f"Error: generate_ai_graph returned None for prompt: {prompt}")
             return jsonify({"error": "Failed to generate chart. Please check server logs for details or try a different prompt."}), 500
     except Exception as e:
@@ -103,4 +104,7 @@ def ai_insight():
         return jsonify({"error": f"An internal server error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Get the PORT from the environment variable, default to 5000 for local development
+    port = int(os.environ.get('PORT', 5000))
+    # Bind to '0.0.0.0' to be accessible from outside localhost (required for Render)
+    app.run(host='0.0.0.0', port=port, debug=True)
